@@ -2,7 +2,8 @@ const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
-const { spawn } = require('child_process');
+const axios = require('axios');
+const FormData = require('form-data');
 
 function createWindow () {
   const win = new BrowserWindow({
@@ -16,7 +17,7 @@ function createWindow () {
 
   win.loadFile('index.html');
 
-  // Select image dialog
+  // Image selection
   ipcMain.on("open-image-dialog", async (event) => {
     const result = await dialog.showOpenDialog({
       properties: ['openFile'],
@@ -30,8 +31,8 @@ function createWindow () {
     }
   });
 
-  // Run poisoning
-  ipcMain.on("run-poisoning", (event, args) => {
+  // Poisoning via FastAPI
+  ipcMain.on("run-poisoning", async (event, args) => {
     const { imagePath, epsilon } = args;
 
     if (!imagePath || imagePath === "undefined") {
@@ -39,28 +40,33 @@ function createWindow () {
       return;
     }
 
-    const downloadsDir = path.join(os.homedir(), "Downloads");
-    const originalName = path.basename(imagePath);
-    const outputName = "poison_" + originalName.replace(/\.[^/.]+$/, "") + ".png";
-    const outputPath = path.join(downloadsDir, outputName);
+    try {
+      const imageBuffer = fs.readFileSync(imagePath);
+      const formData = new FormData();
+      formData.append("file", fs.createReadStream(imagePath));
+      formData.append("eps", epsilon.toString());
+      formData.append("threshold", "0.4"); // You can let user set this too
 
-    const script = spawn('python', ['backend/poison.py', imagePath, epsilon, outputPath]);
+      // Use axios + form data
+      const res = await axios.post("http://127.0.0.1:8000/poison", formData, {
+        responseType: 'arraybuffer',
+        headers: formData.getHeaders()
+      });
 
-    script.stdout.on('data', (data) => {
-      event.reply("poisoning-result", data.toString());
-    });
+      // Save poisoned image to Downloads folder
+      const downloadsDir = path.join(os.homedir(), "Downloads");
+      const originalName = path.basename(imagePath);
+      const outputName = "poison_" + originalName.replace(/\.[^/.]+$/, "") + ".png";
+      const outputPath = path.join(downloadsDir, outputName);
 
-    script.stderr.on('data', (data) => {
-      event.reply("poisoning-result", `❌ Error: ${data.toString()}`);
-    });
+      fs.writeFileSync(outputPath, res.data);
+      event.reply("poisoning-result", "✅ Poisoned image saved.");
+      event.reply("poisoning-complete", outputPath);
+      shell.showItemInFolder(outputPath);
 
-    script.on('close', (code) => {
-      if (code === 0) {
-        event.reply("poisoning-complete", outputPath);
-      } else {
-        event.reply("poisoning-result", `❌ Script exited with code ${code}`);
-      }
-    });
+    } catch (err) {
+      event.reply("poisoning-result", `❌ Error during poisoning: ${err.message}`);
+    }
   });
 }
 
