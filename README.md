@@ -22,6 +22,11 @@
       ```bash
       npm install
 
+3. **Start the FastAPI server (in a separate terminal)**:
+   ```bash
+   cd server
+   uvicorn server:app --reload --host 127.0.0.1 --port 8000
+   
 3. **Run the application**:
    ```bash
    npm start
