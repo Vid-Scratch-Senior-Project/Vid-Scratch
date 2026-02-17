@@ -1,3 +1,7 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Poppins:wght@100;200;300;400;500;600;700;800;900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap");
+@import "tailwindcss";
+@plugin "daisyui";
+
 .logo.vite:hover {
   filter: drop-shadow(0 0 2em #747bff);
 }
@@ -11,19 +15,33 @@
   line-height: 24px;
   font-weight: 400;
 
-  color: #0f0f0f;
-  background-color: #f6f6f6;
+  color: var(--primary-text-color);
+  background-color: var(--background);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
+
+  --background: #171717;
+  --foreground: #ffffff;
+  --primary-text-color: #ffffff;
+  --secondary-text-color: #7241ff;
+  --tertiary-text-color: #627fff;
+  --quaternary-text-color: #865bff;
+  --quinary-text-color: #77798f;
+  --senary-text-color: #2a2b3a;
+  --septenary-text-color: #949494;
+  --box-primary-color: #220b2c;
+  --box-secondary-color: #373737;
+  --font-inter: "Inter", sans-serif;
+  --font-roboto: "Roboto", sans-serif;
+  --font-poppins: "Poppins", sans-serif;
 }
 
 .container {
   margin: 0;
-  padding-top: 10vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -113,4 +131,8 @@ button {
   button:active {
     background-color: #0f0f0f69;
   }
+}
+
+.gradient-btn-start-processing {
+  background: linear-gradient(0deg, #422989 0%, #515160 10%, #A951D2 40%, #DF84E1 80%, #FCA5FE 100%);
 }
