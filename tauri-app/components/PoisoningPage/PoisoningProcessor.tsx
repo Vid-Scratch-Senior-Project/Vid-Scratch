@@ -35,7 +35,7 @@ export default function PoisoningProcessor() {
                     }}>
                     <PoisoningProcessorInput filename={videoUrl} setFilename={setVideoUrl} />
                     <PoisoningProcessorSettings intensity={intensity} quality={quality} setIntensity={setIntensity} setQuality={setQuality} />
-                    <PoisoningProcessorOutput videoUrl={videoUrl} poisonedVideoUrl={poisonedVideoUrl} setPoisonedVideoUrl={setPoisonedVideoUrl} />
+                    <PoisoningProcessorOutput videoUrl={videoUrl} intensity={intensity} quality={quality} poisonedVideoUrl={poisonedVideoUrl} setPoisonedVideoUrl={setPoisonedVideoUrl} />
                 </div>
                 <PoisoningProcessorPreview videoUrl={videoUrl} poisonedVideoUrl={poisonedVideoUrl} />
             </div>

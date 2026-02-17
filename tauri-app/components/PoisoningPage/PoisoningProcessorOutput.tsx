@@ -3,7 +3,7 @@
 import { RiDownloadLine } from "@remixicon/react";
 import React from "react";
 
-export default function PoisoningProcessorOutput({videoUrl, poisonedVideoUrl, setPoisonedVideoUrl}: {videoUrl: string ,poisonedVideoUrl: string, setPoisonedVideoUrl: (url: string) => void}) {
+export default function PoisoningProcessorOutput({videoUrl, intensity, quality, poisonedVideoUrl, setPoisonedVideoUrl}: {videoUrl: string ,intensity: number, quality: number, poisonedVideoUrl: string, setPoisonedVideoUrl: (url: string) => void}) {
     const handleDownload = () => {
         // Download logic
         console.log('Download initiated');
