@@ -9,7 +9,8 @@ export default function PoisoningProcessorSettings({intensity, quality, setInten
                 style={{
                     backgroundColor: 'var(--box-primary-color)',
                     width: '100%',
-                    padding: 10
+                    padding: 10,
+                    textAlign: 'left'
                 }}>
                 2. Define Settings
             </div>
@@ -17,6 +18,7 @@ export default function PoisoningProcessorSettings({intensity, quality, setInten
                 style={{
                     backgroundColor: 'var(--box-secondary-color)',
                     width: '100%',
+                    textAlign: 'left'
                 }}>
                 <div
                     style={{
@@ -48,6 +50,7 @@ export default function PoisoningProcessorSettings({intensity, quality, setInten
                 style={{
                     backgroundColor: 'var(--box-secondary-color)',
                     width: '100%',
+                    textAlign: 'left'
                 }}>
                 <div
                     style={{

@@ -19,7 +19,8 @@ export default function PoisoningProcessorOutput({videoUrl, poisonedVideoUrl, se
                 style={{
                     backgroundColor: 'var(--box-primary-color)',
                     width: '100%',
-                    padding: 10
+                    padding: 10,
+                    textAlign: 'left'
                 }}>
                 3. Output
             </div>

@@ -49,7 +49,7 @@ export default function PoisoningProcessorInput({filename, setFilename}: {filena
             formData.append("file", file);
             formData.append("mediaType", detectMediaType(file.name));
 
-            // TODO: Replace with your actual API endpoint
+            // TODO: Replace with your send to poison backend logic
             const response = await fetch('/api/upload', {
                 method: 'POST',
                 body: formData,
