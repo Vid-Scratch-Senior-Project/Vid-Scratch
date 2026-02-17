@@ -33,7 +33,7 @@ export default function PoisoningProcessor() {
                         height: '100%',
                         gap: '0.3rem',
                     }}>
-                    <PoisoningProcessorInput filename={videoUrl} setFilename={setVideoUrl} />
+                    <PoisoningProcessorInput filepath={videoUrl} setFilepath={setVideoUrl} />
                     <PoisoningProcessorSettings intensity={intensity} quality={quality} setIntensity={setIntensity} setQuality={setQuality} />
                     <PoisoningProcessorOutput videoUrl={videoUrl} intensity={intensity} quality={quality} poisonedVideoUrl={poisonedVideoUrl} setPoisonedVideoUrl={setPoisonedVideoUrl} />
                 </div>

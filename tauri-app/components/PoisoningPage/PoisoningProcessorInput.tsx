@@ -4,7 +4,7 @@ import detectMediaType from "../../utils/detectMediaType";
 import React from "react";
 import { useRef, useState } from "react";
 
-export default function PoisoningProcessorInput({filename, setFilename}: {filename: string, setFilename: (filename: string) => void}) {
+export default function PoisoningProcessorInput({filepath, setFilepath}: {filepath: string, setFilepath: (filename: string) => void}) {
     const [error, setError] = useState('');
     const [isUploading, setIsUploading] = useState(false);
     const hiddenFileInput = useRef<HTMLInputElement>(null);
@@ -36,7 +36,7 @@ export default function PoisoningProcessorInput({filename, setFilename}: {filena
         if (!file) return;
 
         if (validateFile(file)) {
-            setFilename(file.name);
+            setFilepath(file.name);
             await uploadFile(file);
         }
     };
@@ -117,9 +117,9 @@ export default function PoisoningProcessorInput({filename, setFilename}: {filena
 
                 <div>
 
-                    {filename && (
+                    {filepath && (
                         <p className="text-sm text-gray-400">
-                            Selected video: {filename}
+                            Selected video: {filepath}
                         </p>
                     )}
 
