@@ -13,6 +13,7 @@
     "@remixicon/react": "^4.9.0",
     "@tailwindcss/vite": "^4.1.18",
     "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2.6.0",
     "@tauri-apps/plugin-opener": "^2",
     "autoprefixer": "^10.4.24",
     "daisyui": "^5.5.18",

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import detectMediaType from '../utils/detectMediaType';
 
 type MediaBlockProps = {
@@ -94,25 +94,41 @@ export default function MediaBlock({
         );
     }
 
+
     // Video file
     if (isVideo) {
-        return (
-            <video
-                controls={videoOptions.controls}
-                playsInline
-                muted={videoOptions.muted}
-                autoPlay={videoOptions.autoPlay}
-                loop={videoOptions.loop}
-                style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: objectFit || 'contain'
-                }}
-            >
-                <source src={url} type={`video/${url.split('.').pop()}`} />
-                Your browser does not support the video tag.
-            </video>
-        );
+
+        const videoRef = useRef(null);
+    
+    useEffect(() => {
+        if (videoRef.current && url) {
+            if (videoOptions.autoPlay) {
+                videoRef.current.play().catch(e => console.log("Autoplay prevented:", e));
+            }
+        }
+    }, [url, videoOptions.autoPlay]);
+
+    return (
+        <video
+            ref={videoRef}
+            src={url}  // Direct src attribute, no source tag needed
+            controls={videoOptions.controls}
+            playsInline
+            muted={videoOptions.muted}
+            autoPlay={videoOptions.autoPlay}
+            loop={videoOptions.loop}
+            style={{
+                width: '100%',
+                height: '100%',
+                objectFit: objectFit || 'contain',
+                backgroundColor: 'black'
+            }}
+            onError={(e) => {
+                console.error("Video error:", e.target.error);
+                console.error("URL that failed:", url);
+            }}
+        />
+    );
     }
 
     // Image file
@@ -135,7 +151,7 @@ export default function MediaBlock({
                         display: 'block'
                     }}
                     loading="lazy"
-                    />
+                />
             </div>
         );
     }

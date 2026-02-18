@@ -16,12 +16,21 @@
         "width": 1025,
         "height": 740,
         "resizable": false,
-        "center": true,
-        "visible": true
+        "center": true
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; media-src 'self' asset: http://asset.localhost https://asset.localhost; connect-src 'self' ipc: http://ipc.localhost",
+      "assetProtocol": {
+        "enable": true,
+        "scope": [
+          "**/*.mp4",
+          "**/*.webm",
+          "**/*.mov",
+          "**/*.mkv",
+          "**/*.avi"
+        ]
+      }
     }
   },
   "bundle": {

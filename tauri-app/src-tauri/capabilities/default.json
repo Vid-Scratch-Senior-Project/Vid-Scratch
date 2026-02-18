@@ -2,9 +2,27 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability for the main window",
-  "windows": ["main"],
+  "windows": [
+    "main"
+  ],
   "permissions": [
     "core:default",
-    "opener:default"
+    "opener:default",
+    "dialog:default",
+    "core:webview:default",
+    "core:path:default",
+    "core:image:default",
+    "core:resources:default",
+    {
+      "identifier": "core:path:default",
+      "allow": [
+        { "path": "**/*.mp4" },
+        { "path": "**/*.webm" },
+        { "path": "**/*.mov" },
+        { "path": "**/*.mkv" },
+        { "path": "**/*.avi" }
+      ]
+    },
+    "core:event:default"
   ]
 }

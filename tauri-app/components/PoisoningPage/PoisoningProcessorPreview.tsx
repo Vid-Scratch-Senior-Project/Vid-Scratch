@@ -1,6 +1,14 @@
+import { convertFileSrc } from "@tauri-apps/api/core";
 import MediaBlock from "../MediaBlock";
 
 export default function PoisoningProcessorPreview({videoUrl, poisonedVideoUrl} : {videoUrl: string, poisonedVideoUrl: string}) {
+
+
+    const normalizePath = (path) => {
+        if (!path) return path;
+        return path.replace(/\\/g, '/');
+    };
+    
 
     return (
         <div
@@ -18,7 +26,7 @@ export default function PoisoningProcessorPreview({videoUrl, poisonedVideoUrl} :
             style={{
                 height: 300
             }}>
-                <MediaBlock url={videoUrl} objectFit="contain"/>
+                <MediaBlock url={convertFileSrc(normalizePath(videoUrl))} objectFit="contain"/>
             </div>
             
             Poisoned
@@ -26,7 +34,7 @@ export default function PoisoningProcessorPreview({videoUrl, poisonedVideoUrl} :
             style={{
                 height: 300
             }}>
-                <MediaBlock url={poisonedVideoUrl} objectFit="contain" />
+                <MediaBlock url={convertFileSrc(normalizePath(poisonedVideoUrl))} objectFit="contain" />
             </div>
         </div>
     )
