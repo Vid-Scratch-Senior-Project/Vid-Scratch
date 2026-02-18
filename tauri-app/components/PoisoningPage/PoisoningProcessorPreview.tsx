@@ -24,7 +24,7 @@ export default function PoisoningProcessorPreview({videoUrl, poisonedVideoUrl} :
             Original
             <div
             style={{
-                height: 300
+                height: 320
             }}>
                 <MediaBlock url={convertFileSrc(normalizePath(videoUrl))} objectFit="contain"/>
             </div>
@@ -32,7 +32,7 @@ export default function PoisoningProcessorPreview({videoUrl, poisonedVideoUrl} :
             Poisoned
             <div
             style={{
-                height: 300
+                height: 320
             }}>
                 <MediaBlock url={convertFileSrc(normalizePath(poisonedVideoUrl))} objectFit="contain" />
             </div>
