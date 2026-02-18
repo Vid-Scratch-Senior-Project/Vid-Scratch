@@ -36,41 +36,7 @@ export default function PoisoningProcessorInput({filepath, setFilepath}: {filepa
         if (!file) return;
 
         if (validateFile(file)) {
-            setFilepath(file.name);
-            await uploadFile(file);
-        }
-    };
-
-    const uploadFile = async (file: File) => {
-        setIsUploading(true);
-
-        try {
-            const formData = new FormData();
-            formData.append("file", file);
-            formData.append("mediaType", detectMediaType(file.name));
-
-            // TODO: Replace with your send to poison backend logic
-            const response = await fetch('/api/upload', {
-                method: 'POST',
-                body: formData,
-            });
-
-            if (!response.ok) {
-                throw new Error('Upload failed');
-            }
-
-            const result = await response.json();
-            console.log('Upload successful:', result);
-
-        } catch (error) {
-            setError('Upload failed. Please try again.');
-            console.error('Upload error:', error);
-        } finally {
-            setIsUploading(false);
-            // Reset file input
-            if (hiddenFileInput.current) {
-                hiddenFileInput.current.value = '';
-            }
+            setFilepath(file.path);
         }
     };
 
