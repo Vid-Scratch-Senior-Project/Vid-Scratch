@@ -1,6 +1,10 @@
 # Vid-Scratch
 
 [![CI](https://github.com/Vid-Scratch-Senior-Project/Vid-Scratch/actions/workflows/ci.yml/badge.svg)](https://github.com/Vid-Scratch-Senior-Project/Vid-Scratch/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/Python-3-blue)
+![Tauri](https://img.shields.io/badge/Tauri-Desktop%20App-orange)
+![React](https://img.shields.io/badge/Frontend-React-61DAFB?logo=react&logoColor=black)
+![Status](https://img.shields.io/badge/status-in%20development-success)
 
 Vid-Scratch is a desktop application for adversarial video poisoning and robustness testing.  
 It is designed to generate visually similar but model-disruptive video outputs through a Tauri-based desktop interface connected to a Python processing engine.
