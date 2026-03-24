@@ -193,7 +193,7 @@ def verify_saved(
 # ── Audio merge ───────────────────────────────────────────────────────────────
 
 def _merge_audio(original_video: str, poisoned_video: str) -> None:
-    """Copy audio track from original video into poisoned video using PyAV."""
+    """Copy audio from original into poisoned video. Video is remuxed (not re-encoded)."""
     try:
         import av
 
@@ -212,24 +212,24 @@ def _merge_audio(original_video: str, poisoned_video: str) -> None:
         inp_audio = av.open(original_video)
         output = av.open(poisoned_video, 'w')
 
-        # Copy video stream — specify codec explicitly
+        # Remux video — copy packets directly, NO re-encode
         video_in = inp_video.streams.video[0]
-        video_out = output.add_stream(codec_name=video_in.codec_context.name, rate=video_in.base_rate)
-        video_out.width = video_in.codec_context.width
-        video_out.height = video_in.codec_context.height
-        video_out.pix_fmt = video_in.codec_context.pix_fmt
+        video_out = output.add_stream(template=video_in)
 
-        # Copy audio stream — specify codec explicitly
+        # Audio — decode + encode as AAC
         audio_in = inp_audio.streams.audio[0]
-        audio_out = output.add_stream(codec_name='aac', rate=audio_in.rate)
-        audio_out.layout = audio_in.layout
+        audio_out = output.add_stream('aac', rate=audio_in.rate)
+        if audio_in.layout:
+            audio_out.layout = audio_in.layout
 
-        for frame in inp_video.decode(video=0):
-            for packet in video_out.encode(frame):
-                output.mux(packet)
-        for packet in video_out.encode():
+        # Video: packet copy (preserves exact pixels)
+        for packet in inp_video.demux(video_in):
+            if packet.dts is None:
+                continue
+            packet.stream = video_out
             output.mux(packet)
 
+        # Audio: decode + encode
         for frame in inp_audio.decode(audio=0):
             for packet in audio_out.encode(frame):
                 output.mux(packet)
@@ -240,17 +240,13 @@ def _merge_audio(original_video: str, poisoned_video: str) -> None:
         inp_video.close()
         inp_audio.close()
         os.remove(temp_path)
-        print(f"  Audio merged from original")
+        print(f"  Audio merged (video remuxed, not re-encoded)")
 
     except Exception as e:
-        # If merge fails, restore the no-audio version
         try:
-            if 'output' in locals():
-                output.close()
-            if 'inp_video' in locals():
-                inp_video.close()
-            if 'inp_audio' in locals():
-                inp_audio.close()
+            if 'output' in locals(): output.close()
+            if 'inp_video' in locals(): inp_video.close()
+            if 'inp_audio' in locals(): inp_audio.close()
         except Exception:
             pass
         if 'temp_path' in locals() and os.path.exists(temp_path) and not os.path.exists(poisoned_video):
