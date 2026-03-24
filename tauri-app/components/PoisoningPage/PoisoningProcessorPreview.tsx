@@ -84,6 +84,8 @@ export default function PoisoningProcessorPreview({
                         justifyContent: 'center',
                         color: 'var(--septenary-text-color)',
                         fontSize: '0.85rem',
+                        backgroundColor: '#000',
+                        borderRadius: '4px',
                     }}>
                         No video selected
                     </div>
@@ -103,6 +105,8 @@ export default function PoisoningProcessorPreview({
                         justifyContent: 'center',
                         color: 'var(--septenary-text-color)',
                         fontSize: '0.85rem',
+                        backgroundColor: '#000',
+                        borderRadius: '4px',
                     }}>
                         {status === 'running' ? 'Processing...' :
                          status === 'error' ? 'Processing failed' :

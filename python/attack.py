@@ -55,18 +55,25 @@ logger = logging.getLogger(__name__)
 # ── Label names ───────────────────────────────────────────────────────────────
 
 _LABEL_NAMES: dict[int, str] = {}
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 for _f in ('kinetics_400_labels.json', 'label_map.json'):
-    if os.path.isfile(_f):
+    _fpath = os.path.join(_SCRIPT_DIR, _f)
+    if os.path.isfile(_fpath):
         try:
-            with open(_f, encoding='utf-8') as _fh:
+            with open(_fpath, encoding='utf-8') as _fh:
                 _LABEL_NAMES = {int(k): v for k, v in json.load(_fh).items()}
         except Exception:
             pass
         break
 
-
 def _label_name(idx: int) -> str:
     return _LABEL_NAMES.get(idx, f"action_{idx}")
+
+
+def _progress(percent: int, message: str) -> None:
+    """Print structured progress for GUI to parse."""
+    sys.stderr.write(f"PROGRESS:{percent}:{message}\n")
+    sys.stderr.flush()
 
 
 # ── Model loading ─────────────────────────────────────────────────────────────
@@ -190,7 +197,6 @@ def _merge_audio(original_video: str, poisoned_video: str) -> None:
     try:
         import av
 
-        # Check if original has audio
         original = av.open(original_video)
         has_audio = any(s.type == 'audio' for s in original.streams)
         original.close()
@@ -206,24 +212,28 @@ def _merge_audio(original_video: str, poisoned_video: str) -> None:
         inp_audio = av.open(original_video)
         output = av.open(poisoned_video, 'w')
 
-        # Copy video stream
+        # Copy video stream — specify codec explicitly
         video_in = inp_video.streams.video[0]
-        video_out = output.add_stream(template=video_in)
+        video_out = output.add_stream(codec_name=video_in.codec_context.name, rate=video_in.base_rate)
+        video_out.width = video_in.codec_context.width
+        video_out.height = video_in.codec_context.height
+        video_out.pix_fmt = video_in.codec_context.pix_fmt
 
-        # Copy audio stream
+        # Copy audio stream — specify codec explicitly
         audio_in = inp_audio.streams.audio[0]
-        audio_out = output.add_stream(template=audio_in)
+        audio_out = output.add_stream(codec_name='aac', rate=audio_in.rate)
+        audio_out.layout = audio_in.layout
 
-        for packet in inp_video.demux(video_in):
-            if packet.dts is None:
-                continue
-            packet.stream = video_out
+        for frame in inp_video.decode(video=0):
+            for packet in video_out.encode(frame):
+                output.mux(packet)
+        for packet in video_out.encode():
             output.mux(packet)
 
-        for packet in inp_audio.demux(audio_in):
-            if packet.dts is None:
-                continue
-            packet.stream = audio_out
+        for frame in inp_audio.decode(audio=0):
+            for packet in audio_out.encode(frame):
+                output.mux(packet)
+        for packet in audio_out.encode():
             output.mux(packet)
 
         output.close()
@@ -234,10 +244,18 @@ def _merge_audio(original_video: str, poisoned_video: str) -> None:
 
     except Exception as e:
         # If merge fails, restore the no-audio version
+        try:
+            if 'output' in locals():
+                output.close()
+            if 'inp_video' in locals():
+                inp_video.close()
+            if 'inp_audio' in locals():
+                inp_audio.close()
+        except Exception:
+            pass
         if 'temp_path' in locals() and os.path.exists(temp_path) and not os.path.exists(poisoned_video):
             os.rename(temp_path, poisoned_video)
         print(f"  Audio merge skipped: {e}")
-
 
 # ── Single-video attack ──────────────────────────────────────────────────────
 
@@ -252,8 +270,11 @@ def attack_single(args: argparse.Namespace, model=None) -> dict:
     else:
         device = 'cpu'
     print(f"  Device: {device}")
+
+    _progress(5, "Loading model...")
     if model is None:
         model = _load_model(args.checkpoint, args.num_classes, device)
+    _progress(10, "Model loaded, reading video...")
 
     # 1. Load all frames
     if os.path.isdir(args.video):
@@ -262,6 +283,7 @@ def attack_single(args: argparse.Namespace, model=None) -> dict:
         frames_all, meta = load_video(args.video)
 
     N = meta.total_frames
+    _progress(12, f"Loaded {N} frames")
     logger.info(
         f"Loaded {N} frames ({meta.orig_width}x{meta.orig_height} "
         f"@ {meta.fps:.1f} fps)"
@@ -274,6 +296,7 @@ def attack_single(args: argparse.Namespace, model=None) -> dict:
     # 3. Resolve label
     label, top_preds = _resolve_label(model, frames_224, args.label, device)
     label_source = 'auto' if args.label is None else 'provided'
+    _progress(15, f"Label: {_label_name(label)}")
 
     # 4. Poison budget
     k_poison = (
@@ -316,12 +339,14 @@ def attack_single(args: argparse.Namespace, model=None) -> dict:
     else:
         attack_obj = VidScratch(model, cfg)
 
+    _progress(18, "Running attack (BO + adversarial)...")
     frames_adv_224, results = attack_obj.attack(
         frames_224.to(device), label,
         total_frames=N, use_bo=not args.no_bo,
     )
     results['label_source'] = label_source
     results['label_used'] = label
+    _progress(65, "Mapping perturbation...")
 
     # 6. Map perturbation back
     frames_adv_all = apply_perturbation(
@@ -331,6 +356,7 @@ def attack_single(args: argparse.Namespace, model=None) -> dict:
         smooth_kernel=args.smooth_kernel,
         codec_boost=args.codec_boost,
     )
+    _progress(70, "Saving video...")
 
     # 7. Save + verify loop
     os.makedirs(args.output_dir, exist_ok=True)
@@ -372,6 +398,8 @@ def attack_single(args: argparse.Namespace, model=None) -> dict:
     print(f"\n  Grid search: noise=[{args.noise_clamp}, +{noise_step}, "
           f"max {max_noise_clamp}]  ssim={ssim_levels}\n")
 
+    _progress(75, "Verifying result...")
+
     # Verify initial result
     save_video(current_frames_adv_all, adv_path, fps=meta.fps)
     attempt += 1
@@ -379,6 +407,7 @@ def attack_single(args: argparse.Namespace, model=None) -> dict:
     v_fooled = verify_info['fooled']
 
     _print_verify(attempt, current_noise_clamp, cfg.ssim_budget, verify_info, label)
+    _progress(75 + min(attempt * 2, 15), f"Verify attempt {attempt}")
 
     if v_fooled:
         real_verified = True
@@ -444,6 +473,7 @@ def attack_single(args: argparse.Namespace, model=None) -> dict:
                 verify_info = verify_saved(adv_path, model, meta, label, device)
 
                 _print_verify(attempt, nc, sb, verify_info, label)
+                _progress(75 + min(attempt * 2, 15), f"Verify attempt {attempt}")
 
                 if verify_info['fooled']:
                     real_verified = True
@@ -455,10 +485,12 @@ def attack_single(args: argparse.Namespace, model=None) -> dict:
                 break
 
     # Merge audio from original into poisoned video
+    _progress(92, "Merging audio...")
     if not os.path.isdir(args.video):
         _merge_audio(args.video, adv_path)
 
     # Finalise results
+    _progress(95, "Finalizing...")
     results['real_verified'] = real_verified
     results['verified_pred'] = verify_info.get('pred')
     results['verified_fooled'] = verify_info.get('fooled', False)
@@ -484,6 +516,11 @@ def attack_single(args: argparse.Namespace, model=None) -> dict:
              for k, v in results.items()},
             f, indent=2,
         )
+
+    try:
+        os.remove(metrics_path)
+    except Exception:
+        pass
 
     # Summary
     real_poisoned = [meta.sampled_idx[i] for i in results['key_frames']]
@@ -535,7 +572,6 @@ def attack_single(args: argparse.Namespace, model=None) -> dict:
             'total_frames': N,
             'frames_poisoned': len(results.get('key_frames', [])),
             'key_frames': [int(x) for x in results.get('key_frames', [])],
-            # Top-5 predictions for UI stats panel
             'orig_top5': [[int(c), float(p)] for c, p in top_preds] if top_preds else [],
             'orig_top5_names': [_label_name(int(c)) for c, _ in top_preds] if top_preds else [],
             'adv_top5': [[int(c), float(p)] for c, p in verify_info.get('top5', [])] if verify_info.get('top5') else [],
@@ -544,6 +580,7 @@ def attack_single(args: argparse.Namespace, model=None) -> dict:
         sys.stdout.write(json.dumps(json_result))
         sys.stdout.flush()
 
+    _progress(100, "Done!")
     return results
 
 
