@@ -23,6 +23,9 @@
         { "path": "**/*.avi" }
       ]
     },
-    "core:event:default"
+    "core:event:default",
+    "core:window:allow-set-size",
+    "core:window:allow-center",
+    "core:window:allow-set-resizable"
   ]
 }

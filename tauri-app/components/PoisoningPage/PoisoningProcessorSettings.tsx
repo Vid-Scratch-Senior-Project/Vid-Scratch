@@ -1,4 +1,3 @@
-
 import React from "react";
 
 export default function PoisoningProcessorSettings({intensity, quality, setIntensity, setQuality} : {intensity: number, quality: number, setIntensity: (value: number) => void, setQuality: (value: number) => void}) {
@@ -63,12 +62,12 @@ export default function PoisoningProcessorSettings({intensity, quality, setInten
                         fontSize: '0.8rem',
                         color: 'var(--septenary-text-color)'
                     }}>
-                    Duration spent protractoring the video. Higher can lead to better Protection but longer rendering time.
+                    Duration spent processing the video. Higher can lead to better protection but longer rendering time.
                 </div>
                 <div className="w-full p-2">
                     <input type="range" min={0} max="100" value={quality}
                         onChange={(e) => setQuality(parseInt(e.target.value))}
-                        className="w-full range range-primary [--range-bg:#5c98e22f]" step="25" />
+                        className="w-full range range-primary [--range-bg:#5c98e22f]" step="50" />
                     <div className="flex justify-between px-2.5 mt-2 text-xs">
                         <span className="text-center w-[25px] -ml-2">Low</span>
                         <span className="text-center w-[50px]">Medium</span>

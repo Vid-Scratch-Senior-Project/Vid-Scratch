@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "tauri-app",
+  "productName": "VidScratch",
   "version": "0.1.0",
   "identifier": "com.aumna.tauri-app",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "tauri-app",
+        "title": "VidScratch",
         "width": 1030,
         "height": 800,
         "resizable": false,
@@ -24,11 +24,10 @@
       "assetProtocol": {
         "enable": true,
         "scope": [
-          "**/*.mp4",
-          "**/*.webm",
-          "**/*.mov",
-          "**/*.mkv",
-          "**/*.avi"
+          "**/*",
+          "C:\\Users\\**\\*",
+          "$HOME/**/*",
+          "$DOWNLOAD/**/*"
         ]
       }
     }
@@ -42,6 +41,9 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
+    ],
+    "resources": [
+      "engine/**/*"
     ]
   }
 }
