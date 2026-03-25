@@ -8,7 +8,7 @@
 //         if (!path) return path;
 //         return path.replace(/\\/g, '/');
 //     };
-    
+
 
 //     return (
 //         <div
@@ -28,7 +28,7 @@
 //             }}>
 //                 <MediaBlock url={convertFileSrc(normalizePath(videoUrl))} objectFit="contain"/>
 //             </div>
-            
+
 //             Poisoned
 //             <div
 //             style={{
@@ -108,9 +108,9 @@ export default function PoisoningProcessorPreview({
                         backgroundColor: '#000',
                         borderRadius: '4px',
                     }}>
-                        {status === 'running' ? 'Processing...' :
-                         status === 'error' ? 'Processing failed' :
-                         'No poisoned video yet'}
+                        {status === 'running' ? <div className="w-full h-full bg-gray-200 animate-pulse" /> :
+                            status === 'error' ? 'Processing failed' :
+                                'No poisoned video yet'}
                     </div>
                 )}
             </div>
