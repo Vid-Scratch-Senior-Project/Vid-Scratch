@@ -108,7 +108,7 @@ export default function PoisoningProcessorPreview({
                         backgroundColor: '#000',
                         borderRadius: '4px',
                     }}>
-                        {status === 'running' ? <div className="w-full h-full bg-gray-200 animate-pulse" /> :
+                        {status === 'running' ? <div data-testid="loading-skeleton" className="w-full h-full bg-gray-200 animate-pulse" /> :
                             status === 'error' ? 'Processing failed' :
                                 'No poisoned video yet'}
                     </div>

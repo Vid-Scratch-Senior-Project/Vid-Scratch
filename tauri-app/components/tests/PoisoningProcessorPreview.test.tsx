@@ -44,7 +44,7 @@ describe('PoisoningProcessorPreview', () => {
       />
     );
 
-    expect(screen.getByText(/Processing/i)).toBeInTheDocument();
+    expect(screen.getByTestId('loading-skeleton')).toBeInTheDocument();
   });
 
   it('shows Processing failed when status is error and no poisoned output', () => {
