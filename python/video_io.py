@@ -323,9 +323,14 @@ def save_video(
     output_path: str,
     fps: float = 25.0,
 ) -> None:
-    """Save all frames ``(N, C, H, W)`` as a video file.
+    """Save all frames ``(N, C, H, W)`` as a browser-playable MP4.
 
-    The output preserves the original frame count, resolution and fps.
+    Strategy:
+      1. Write raw frames via OpenCV (mp4v — works on all OS).
+      2. If ``ffmpeg`` is available, remux to H.264 so that browsers
+         and WebView (Tauri/Electron) can play it.
+      3. If ``ffmpeg`` is not available, the mp4v file is kept as-is
+         (VLC can play it, but browsers may not).
     """
     try:
         import cv2
@@ -340,11 +345,61 @@ def save_video(
         frames.detach().cpu().clamp(0, 1).numpy() * 255
     ).astype(np.uint8).transpose(0, 2, 3, 1)
 
-    fourcc = cv2.VideoWriter_fourcc(*'avc1')
-    writer = cv2.VideoWriter(safe_path, fourcc, fps, (W, H))
+    # Step 1: write with mp4v (universally available)
+    temp_path = safe_path.replace('.mp4', '_raw.mp4')
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    writer = cv2.VideoWriter(temp_path, fourcc, fps, (W, H))
+    if not writer.isOpened():
+        # Last resort: try XVID → .avi
+        temp_path = safe_path.replace('.mp4', '_raw.avi')
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        writer = cv2.VideoWriter(temp_path, fourcc, fps, (W, H))
     for frm in np_frames:
         writer.write(cv2.cvtColor(frm, cv2.COLOR_RGB2BGR))
     writer.release()
+
+    # Step 2: remux to H.264 via ffmpeg (browser-compatible)
+    if _remux_to_h264(temp_path, safe_path):
+        # Success — remove temp
+        try:
+            os.remove(temp_path)
+        except OSError:
+            pass
+    else:
+        # No ffmpeg — rename temp to final
+        if temp_path != safe_path:
+            if os.path.exists(safe_path):
+                os.remove(safe_path)
+            os.rename(temp_path, safe_path)
+
+
+def _remux_to_h264(input_path: str, output_path: str) -> bool:
+    """Re-encode to H.264 using ffmpeg. Returns True on success."""
+    import subprocess
+    import shutil
+
+    ffmpeg = shutil.which('ffmpeg')
+    if not ffmpeg:
+        return False
+
+    try:
+        cmd = [
+            ffmpeg, '-y',
+            '-i', input_path,
+            '-c:v', 'libx264',
+            '-preset', 'fast',
+            '-crf', '18',
+            '-pix_fmt', 'yuv420p',
+            '-movflags', '+faststart',
+            '-an',  # no audio (added separately later)
+            output_path,
+        ]
+        result = subprocess.run(
+            cmd, capture_output=True, timeout=300,
+        )
+        return result.returncode == 0 and os.path.exists(output_path)
+    except Exception:
+        return False
 
 
 def save_frames_as_images(

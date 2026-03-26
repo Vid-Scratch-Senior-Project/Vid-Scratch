@@ -193,65 +193,75 @@ def verify_saved(
 # ── Audio merge ───────────────────────────────────────────────────────────────
 
 def _merge_audio(original_video: str, poisoned_video: str) -> None:
-    """Copy audio from original into poisoned video. Video is remuxed (not re-encoded)."""
+    """Copy audio from original video into the poisoned video using ffmpeg.
+
+    Uses ffmpeg subprocess instead of PyAV to avoid API compatibility issues.
+    The video stream is copied as-is (no re-encode), only audio is muxed in.
+    """
+    import subprocess
+    import shutil
+
+    ffmpeg = shutil.which('ffmpeg')
+    if not ffmpeg:
+        print("  Audio merge skipped: ffmpeg not found in PATH")
+        print("  → Install ffmpeg: https://ffmpeg.org/download.html")
+        return
+
+    # Check if original has audio
     try:
-        import av
-
-        original = av.open(original_video)
-        has_audio = any(s.type == 'audio' for s in original.streams)
-        original.close()
-
-        if not has_audio:
-            print(f"  No audio in original, skipping")
+        probe = subprocess.run(
+            [ffmpeg, '-i', original_video, '-hide_banner'],
+            capture_output=True, text=True, timeout=10,
+        )
+        if 'Audio:' not in probe.stderr:
+            print("  No audio in original, skipping")
             return
+    except Exception:
+        pass  # proceed anyway, ffmpeg will handle it
 
-        temp_path = poisoned_video.replace('.mp4', '_noaudio.mp4')
+    temp_path = poisoned_video.replace('.mp4', '_noaudio.mp4')
+    try:
         os.rename(poisoned_video, temp_path)
+    except OSError as e:
+        print(f"  Audio merge skipped: cannot rename file: {e}")
+        return
 
-        inp_video = av.open(temp_path)
-        inp_audio = av.open(original_video)
-        output = av.open(poisoned_video, 'w')
+    try:
+        cmd = [
+            ffmpeg, '-y',
+            '-i', temp_path,         # poisoned video (no audio)
+            '-i', original_video,    # original (has audio)
+            '-c:v', 'copy',          # copy video stream as-is
+            '-c:a', 'aac',           # encode audio as AAC
+            '-b:a', '128k',
+            '-map', '0:v:0',         # video from poisoned
+            '-map', '1:a:0',         # audio from original
+            '-shortest',
+            '-movflags', '+faststart',
+            poisoned_video,
+        ]
+        result = subprocess.run(cmd, capture_output=True, timeout=120)
 
-        # Remux video — copy packets directly, NO re-encode
-        video_in = inp_video.streams.video[0]
-        video_out = output.add_stream(template=video_in)
+        if result.returncode == 0 and os.path.exists(poisoned_video):
+            os.remove(temp_path)
+            print("  Audio merged successfully (ffmpeg)")
+        else:
+            # ffmpeg failed — restore original
+            stderr = result.stderr.decode('utf-8', errors='replace')[-200:]
+            print(f"  Audio merge failed: {stderr}")
+            if not os.path.exists(poisoned_video):
+                os.rename(temp_path, poisoned_video)
+            else:
+                os.remove(temp_path)
 
-        # Audio — decode + encode as AAC
-        audio_in = inp_audio.streams.audio[0]
-        audio_out = output.add_stream('aac', rate=audio_in.rate)
-        if audio_in.layout:
-            audio_out.layout = audio_in.layout
-
-        # Video: packet copy (preserves exact pixels)
-        for packet in inp_video.demux(video_in):
-            if packet.dts is None:
-                continue
-            packet.stream = video_out
-            output.mux(packet)
-
-        # Audio: decode + encode
-        for frame in inp_audio.decode(audio=0):
-            for packet in audio_out.encode(frame):
-                output.mux(packet)
-        for packet in audio_out.encode():
-            output.mux(packet)
-
-        output.close()
-        inp_video.close()
-        inp_audio.close()
-        os.remove(temp_path)
-        print(f"  Audio merged (video remuxed, not re-encoded)")
-
-    except Exception as e:
-        try:
-            if 'output' in locals(): output.close()
-            if 'inp_video' in locals(): inp_video.close()
-            if 'inp_audio' in locals(): inp_audio.close()
-        except Exception:
-            pass
-        if 'temp_path' in locals() and os.path.exists(temp_path) and not os.path.exists(poisoned_video):
+    except subprocess.TimeoutExpired:
+        print("  Audio merge skipped: ffmpeg timed out")
+        if not os.path.exists(poisoned_video) and os.path.exists(temp_path):
             os.rename(temp_path, poisoned_video)
+    except Exception as e:
         print(f"  Audio merge skipped: {e}")
+        if not os.path.exists(poisoned_video) and os.path.exists(temp_path):
+            os.rename(temp_path, poisoned_video)
 
 # ── Single-video attack ──────────────────────────────────────────────────────
 
